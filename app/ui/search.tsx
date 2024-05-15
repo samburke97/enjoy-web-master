@@ -1,17 +1,16 @@
 "use client";
 
-// Search.js
-
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import React, { useContext, useState } from "react";
 import { UIContext } from "../../store/ui-context";
 import CreateSport from "./sports/create/page";
-import CreateTags from "./tags/create/page";
+import CreateTag from "./tags/create/page";
+import CreateGroup from "./groups/create/page";
 import Modal from "./modal";
 
 type SearchProps = {
   placeholder: string;
-  page: string; // Page or context information
+  page: string;
 };
 
 export default function Search({ placeholder, page }: SearchProps) {
@@ -31,7 +30,10 @@ export default function Search({ placeholder, page }: SearchProps) {
       contentComponent = CreateSport;
       break;
     case "tags":
-      contentComponent = CreateTags;
+      contentComponent = CreateTag;
+      break;
+    case "groups":
+      contentComponent = CreateGroup;
       break;
     // Add more cases for other pages or contexts if needed
     default:

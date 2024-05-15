@@ -1,38 +1,33 @@
 "use client";
 
 import { useState, useContext, useRef, useEffect } from "react";
-import {
-  XMarkIcon,
-  MagnifyingGlassIcon,
-  PhotoIcon,
-} from "@heroicons/react/24/solid";
+import { XMarkIcon, MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { UIContext } from "../../../../store/ui-context";
-import { createTag } from "@/app/lib/actions";
-import { fetchGroups, fetchSports } from "@/app/lib/data";
-import { Sport, Group } from "@/app/lib/definitions";
+import { createGroup } from "@/app/lib/actions";
+import { fetchTags, fetchSports } from "@/app/lib/data";
+import { Tags, Sport } from "@/app/lib/definitions";
 
-const CreateTag: React.FC = () => {
+const CreateGroup: React.FC = () => {
   const UICtx = useContext(UIContext);
+  const [selectedTags, setSelectedTags] = useState<Tags[]>([]);
   const [selectedSports, setSelectedSports] = useState<Sport[]>([]);
-  const [selectedFilterGroups, setSelectedFilterGroups] = useState<Group[]>([]);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const [tags, setTags] = useState<Tags[]>([]);
   const [sports, setSports] = useState<Sport[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [showSportsDropdown, setShowSportsDropdown] = useState<boolean>(false);
-  const [showGroupsDropdown, setShowGroupsDropdown] = useState<boolean>(false);
+  const [searchTagInput, setSearchTagInput] = useState<string>("");
+  const [showTagsDropdown, setShowTagsDropdown] = useState<boolean>(false);
+  const [showClearTagInput, setShowClearTagInput] = useState<boolean>(false);
   const [searchSportInput, setSearchSportInput] = useState<string>("");
-  const [searchGroupInput, setSearchGroupInput] = useState<string>("");
+  const [showSportsDropdown, setShowSportsDropdown] = useState<boolean>(false);
   const [showClearSportInput, setShowClearSportInput] =
-    useState<boolean>(false);
-  const [showClearGroupInput, setShowClearGroupInput] =
     useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
+      const tagsData = await fetchTags();
       const sportsData = await fetchSports();
-      const groupsData = await fetchGroups();
+      setTags(tagsData);
       setSports(sportsData);
-      setGroups(groupsData);
     };
 
     fetchData();
@@ -48,15 +43,65 @@ const CreateTag: React.FC = () => {
       return;
     }
 
-    const createdTag = {
-      name,
-      sportIds: selectedSports.map((sport) => sport.id),
-      groupIds: selectedFilterGroups.map((group) => group.id),
-      groupId: selectedFilterGroups[0].id, // Update this line to include the groupId
-    };
+    if (selectedSports.length === 0) {
+      console.error("No sports selected");
+      return;
+    }
 
-    createTag(createdTag);
-    UICtx.showModalAction();
+    try {
+      await createGroup(
+        name,
+        selectedTags.map((tag) => tag.id),
+        selectedSports.map((sport) => sport.id)
+      );
+      UICtx.showModalAction();
+    } catch (error) {
+      console.error("Error creating group:", error);
+    }
+  };
+
+  const handleSearchTagInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setSearchTagInput(event.target.value);
+    setShowClearTagInput(!!event.target.value);
+  };
+
+  const clearSearchTagInput = () => {
+    setSearchTagInput("");
+    setShowClearTagInput(false);
+  };
+
+  const handleTagChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedTagIds = Array.from(
+      event.target.selectedOptions,
+      (option) => option.value
+    );
+    const selectedTagsList = selectedTagIds.map(
+      (id) => tags.find((tag) => tag.id === id)!
+    );
+    setSelectedTags((prevSelectedTags) => [
+      ...prevSelectedTags,
+      ...selectedTagsList,
+    ]);
+  };
+
+  const removeSelectedTag = (id: string) => {
+    setSelectedTags((prevSelectedTags) =>
+      prevSelectedTags.filter((tag) => tag.id !== id)
+    );
+  };
+
+  const handleSearchSportInputChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setSearchSportInput(event.target.value);
+    setShowClearSportInput(!!event.target.value);
+  };
+
+  const clearSearchSportInput = () => {
+    setSearchSportInput("");
+    setShowClearSportInput(false);
   };
 
   const handleSportChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -73,55 +118,9 @@ const CreateTag: React.FC = () => {
     ]);
   };
 
-  const handleFilterGroupChange = (
-    event: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const selectedGroupIds = Array.from(
-      event.target.selectedOptions,
-      (option) => option.value
-    );
-    const selectedGroupsList = selectedGroupIds.map(
-      (id) => groups.find((group) => group.id === id)!
-    );
-    setSelectedFilterGroups((prevSelectedGroups) => [
-      ...prevSelectedGroups,
-      ...selectedGroupsList,
-    ]);
-  };
-
-  const handleSearchSportInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setSearchSportInput(event.target.value);
-    setShowClearSportInput(!!event.target.value);
-  };
-
-  const handleSearchGroupInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setSearchGroupInput(event.target.value);
-    setShowClearGroupInput(!!event.target.value);
-  };
-
-  const clearSearchSportInput = () => {
-    setSearchSportInput("");
-    setShowClearSportInput(false);
-  };
-
-  const clearSearchGroupInput = () => {
-    setSearchGroupInput("");
-    setShowClearGroupInput(false);
-  };
-
   const removeSelectedSport = (id: string) => {
     setSelectedSports((prevSelectedSports) =>
       prevSelectedSports.filter((sport) => sport.id !== id)
-    );
-  };
-
-  const removeSelectedGroup = (id: string) => {
-    setSelectedFilterGroups((prevSelectedGroups) =>
-      prevSelectedGroups.filter((group) => group.id !== id)
     );
   };
 
@@ -129,7 +128,7 @@ const CreateTag: React.FC = () => {
     <div className="fixed top-0 right-0 w-1/2 h-full bg-surface-light border-[1px] dark:bg-surface-primary-dark dark:border-outline-medium-dark p-10 overflow-scroll z-20">
       <div className="gap-y-5 dark:bg-surface-primary-dark">
         <div className="flex justify-between py-4 mb-4">
-          <p className="font-semibold text-2xl">Create Tag</p>
+          <p className="font-semibold text-2xl">Create Group</p>
           <button onClick={UICtx.showModalAction}>
             <XMarkIcon className="w-8 p-2 border border-outline-medium rounded-full" />
           </button>
@@ -139,25 +138,83 @@ const CreateTag: React.FC = () => {
         <form onSubmit={handleSubmit}>
           <div className="flex flex-col">
             <label htmlFor="tag-name" className="py-4">
-              Tag Name
+              Group Name
+            </label>
+            <input
+              className="block w-full rounded-md border focus:ring-0 focus:outline-none focus:border-primary-primary active:border-primary-primary py-[9px] pl-6 text-sm outline-2 placeholder:text-gray-500 dark:bg-surface-extra-light-dark"
+              ref={nameInputRef}
+              name="name"
+              type="text"
+              maxLength={50}
+              placeholder="Enter Group Name"
+              required
+            />
+          </div>
+
+          <div className="flex flex-col">
+            <label htmlFor="filter-tag" className="py-4">
+              Filter Group Tags ({selectedTags.length})
             </label>
             <div className="relative">
               <input
                 className="block w-full rounded-md border focus:ring-0 focus:outline-none focus:border-primary-primary active:border-primary-primary py-[9px] pl-12 pr-10 text-sm outline-2 placeholder:text-gray-500 dark:bg-surface-extra-light-dark"
-                ref={nameInputRef}
-                name="name"
                 type="text"
-                maxLength={50}
-                placeholder="Enter Tag Name"
-                required
+                placeholder="Search or select tags"
+                value={searchTagInput}
+                onChange={handleSearchTagInputChange}
+                onFocus={() => setShowTagsDropdown(true)}
+                onBlur={() => setTimeout(() => setShowTagsDropdown(false), 200)}
               />
               <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              {showClearTagInput && (
+                <XMarkIcon
+                  className="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer"
+                  onClick={clearSearchTagInput}
+                />
+              )}
+              {showTagsDropdown && (
+                <div className="absolute z-10 top-full left-0 w-full bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 rounded-b-md shadow-lg">
+                  <select
+                    className="block w-full px-4 py-2 text-sm outline-none"
+                    multiple
+                    size={5}
+                    value={selectedTags.map((tag) => tag.id)}
+                    onChange={handleTagChange}
+                  >
+                    {tags
+                      .filter((tag) =>
+                        tag.name
+                          .toLowerCase()
+                          .includes(searchTagInput.toLowerCase())
+                      )
+                      .map((tag) => (
+                        <option key={tag.id} value={tag.id}>
+                          {tag.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap mt-2">
+              {selectedTags.map((tag) => (
+                <div
+                  key={tag.id}
+                  className="bg-gray-100 rounded-full px-3 py-2 mr-2 flex items-center"
+                >
+                  <span className="text-sm">{tag.name}</span>
+                  <XMarkIcon
+                    className="h-4 w-4 ml-2 cursor-pointer"
+                    onClick={() => removeSelectedTag(tag.id)}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="flex flex-col">
-            <label htmlFor="sport-name" className="py-4">
-              Tag Sports ({selectedSports.length})
+          <div className="flex flex-col mt-4">
+            <label htmlFor="filter-sport" className="py-4">
+              Filter Group Sports ({selectedSports.length})
             </label>
             <div className="relative">
               <input
@@ -208,7 +265,6 @@ const CreateTag: React.FC = () => {
                   key={sport.id}
                   className="bg-gray-100 rounded-full px-3 py-2 mr-2 flex items-center"
                 >
-                  <PhotoIcon className="h-4 w-4 mr-2" />
                   <span className="text-sm">{sport.name}</span>
                   <XMarkIcon
                     className="h-4 w-4 ml-2 cursor-pointer"
@@ -219,71 +275,7 @@ const CreateTag: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-col mt-2">
-            <label htmlFor="filter-group" className="py-4">
-              Tag Filter Groups ({selectedFilterGroups.length})
-            </label>
-            <div className="relative">
-              <input
-                className="block w-full rounded-md border focus:ring-0 focus:outline-none focus:border-primary-primary active:border-primary-primary py-[9px] pl-12 pr-10 text-sm outline-2 placeholder:text-gray-500 dark:bg-surface-extra-light-dark"
-                type="text"
-                placeholder="Search or select groups"
-                value={searchGroupInput}
-                onChange={handleSearchGroupInputChange}
-                onFocus={() => setShowGroupsDropdown(true)}
-                onBlur={() =>
-                  setTimeout(() => setShowGroupsDropdown(false), 200)
-                }
-              />
-              <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              {showClearGroupInput && (
-                <XMarkIcon
-                  className="h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 cursor-pointer"
-                  onClick={clearSearchGroupInput}
-                />
-              )}
-              {showGroupsDropdown && (
-                <div className="absolute z-10 top-full left-0 w-full bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 rounded-b-md shadow-lg">
-                  <select
-                    className="block w-full px-4 py-2 text-sm outline-none"
-                    multiple
-                    size={5}
-                    value={selectedFilterGroups.map((group) => group.id)}
-                    onChange={handleFilterGroupChange}
-                  >
-                    {groups
-                      .filter((group) =>
-                        group.name
-                          .toLowerCase()
-                          .includes(searchGroupInput.toLowerCase())
-                      )
-                      .map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              )}
-            </div>
-            <div className="flex flex-wrap mt-2">
-              {selectedFilterGroups.map((group) => (
-                <div
-                  key={group.id}
-                  className="bg-gray-100 rounded-full px-3 py-2 mr-2 flex items-center"
-                >
-                  <PhotoIcon className="h-4 w-4 mr-2" />
-                  <span className="text-sm">{group.name}</span>
-                  <XMarkIcon
-                    className="h-4 w-4 ml-2 cursor-pointer"
-                    onClick={() => removeSelectedGroup(group.id)}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-end mt-4">
+          <div className="flex justify-end mt-6">
             <button
               className="text-black font-medium text-sm rounded py-2 px-6 mr-2 border border-black dark:border-surface-primary dark:text-surface-primary"
               onClick={UICtx.showModalAction}
@@ -303,4 +295,4 @@ const CreateTag: React.FC = () => {
   );
 };
 
-export default CreateTag;
+export default CreateGroup;

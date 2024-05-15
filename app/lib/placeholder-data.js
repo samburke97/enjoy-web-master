@@ -1,36 +1,37 @@
 const { v4: uuidv4 } = require("uuid");
 
+// Define placeholder data for centers, sports, tags, and groups
 const centers = [
   {
-    id: "1e56d9f7-97ef-4bb1-bbb7-5cc04dc8be76",
+    id: uuidv4(), // Generate a unique UUID for each center
     name: "Hackney Football Club",
   },
 ];
 
 const sports = [
   {
-    id: "8e173c77-9f48-4561-a1d0-e2e109a499a7",
+    id: uuidv4(), // Generate a unique UUID for each sport
     name: "Football",
-    center_id: "1e56d9f7-97ef-4bb1-bbb7-5cc04dc8be76",
+    center_id: centers[0].id, // Assign the center UUID to the sport
   },
 ];
 
 const sport_images = [
   {
-    id: uuidv4(),
-    sport_id: "8e173c77-9f48-4561-a1d0-e2e109a499a7",
+    id: uuidv4(), // Generate a unique UUID for each sport image
+    sport_id: sports[0].id, // Use the UUID of the first sport
     image_url: "/sports/football.jpg",
   },
 ];
 
 const tags = [
   {
-    id: uuidv4(),
+    id: uuidv4(), // Generate a unique UUID for each tag
     name: "Sauna",
     last_edited: new Date().toISOString(),
   },
   {
-    id: uuidv4(),
+    id: uuidv4(), // Generate a unique UUID for each tag
     name: "Restaurant",
     last_edited: new Date().toISOString(),
   },
@@ -39,7 +40,7 @@ const tags = [
 // Define placeholder data for groups
 const groups = [
   {
-    id: uuidv4(),
+    id: uuidv4(), // Generate a unique UUID for each group
     name: "Relaxation Facilities",
   },
 ];

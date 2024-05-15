@@ -1,4 +1,3 @@
-"use server";
 import { fetchSports } from "@/app/lib/data";
 import Image from "next/image";
 import { MapPinIcon } from "@heroicons/react/24/solid";
@@ -22,7 +21,9 @@ export default async function Sports() {
                 alt={sport.name}
                 width={112}
                 height={112}
-                className="rounded-lg object-cover"
+                layout="fixed"
+                objectFit="contain"
+                className="rounded-lg h-[112px] w-[112px]"
               />
             </div>
             <div className="flex flex-col flex-grow">

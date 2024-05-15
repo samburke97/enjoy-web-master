@@ -1,6 +1,10 @@
+"use server";
+
 import { sql } from "@vercel/postgres";
 import { Sport, Tags, Group } from "./definitions";
 import { unstable_noStore as noStore } from "next/cache";
+
+//Fetch Sports
 
 export async function fetchSports() {
   noStore();
@@ -19,6 +23,8 @@ export async function fetchSports() {
   }
 }
 
+//Fetch Tags
+
 export async function fetchTags() {
   noStore();
 
@@ -34,13 +40,33 @@ export async function fetchTags() {
   }
 }
 
+//Fetch Groups
+
 export async function fetchGroups() {
   noStore();
 
   try {
     const data = await sql<Group>`
-    SELECT id, name
-    FROM groups`;
+      SELECT g.id, g.name, g.last_edited,
+             (
+               SELECT COUNT(*)
+               FROM group_tags gt
+               WHERE gt.group_id = g.id
+             ) AS tag_count,
+             (
+               SELECT json_agg(json_build_object('id', s.id, 'name', s.name))
+               FROM sport_groups sg
+               LEFT JOIN sports s ON sg.sport_id = s.id
+               WHERE sg.group_id = g.id
+             ) AS sports,
+             (
+               SELECT json_agg(json_build_object('id', t.id, 'name', t.name))
+               FROM group_tags gt
+               LEFT JOIN tags t ON gt.tag_id = t.id
+               WHERE gt.group_id = g.id
+             ) AS tags
+      FROM groups g;
+    `;
 
     return data.rows;
   } catch (error) {

@@ -49,11 +49,12 @@ async function seedDatabase(client) {
 
     // Create groups table
     await client.query(`
-      CREATE TABLE IF NOT EXISTS groups (
-        id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-        name VARCHAR(255) NOT NULL
-      );
-    `);
+  CREATE TABLE IF NOT EXISTS groups (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    last_edited TIMESTAMP DEFAULT NOW()
+  );
+`);
 
     // Associative table for sports and tags
     await client.query(`
@@ -79,6 +80,16 @@ async function seedDatabase(client) {
         group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
         tag_id UUID REFERENCES tags(id) ON DELETE CASCADE,
         PRIMARY KEY (group_id, tag_id)
+      );
+    `);
+
+    //Associative table for groups sports
+
+    await client.query(`
+       CREATE TABLE IF NOT EXISTS sport_groups (
+       sport_id UUID REFERENCES sports(id) ON DELETE CASCADE,
+       group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
+       PRIMARY KEY (sport_id, group_id)
       );
     `);
 

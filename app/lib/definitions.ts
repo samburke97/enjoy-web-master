@@ -13,4 +13,6 @@ export type Tags = {
 export type Group = {
   id: string | number;
   name: string;
+  last_edited: Date;
+  tag_count: number; // Add the tag_count property
 };

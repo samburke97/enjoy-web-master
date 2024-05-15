@@ -98,7 +98,7 @@ export async function deleteSport(sportId: string) {
   }
 }
 
-//Create Tag
+// Create Tag Action
 
 interface TagData {
   name?: string;
@@ -111,6 +111,20 @@ export async function createTag(data: TagData) {
 
   try {
     await client.query("BEGIN");
+
+    // Check if the tag name already exists
+    const existingTagQuery = await client.query({
+      text: `
+        SELECT id
+        FROM tags
+        WHERE name = $1
+      `,
+      values: [data.name],
+    });
+
+    if (existingTagQuery.rows.length > 0) {
+      throw new Error("Tag name already exists.");
+    }
 
     // Insert data into the "tags" table
     const insertedTag = await client.query({
@@ -143,6 +157,28 @@ export async function createTag(data: TagData) {
           VALUES ($1, $2)
         `,
         values: [data.groupId, tagId],
+      });
+
+      // Calculate the tag count for the associated group
+      const tagCountQuery = await client.query({
+        text: `
+          SELECT COUNT(*)
+          FROM group_tags
+          WHERE group_id = $1
+        `,
+        values: [data.groupId],
+      });
+
+      const tagCount = parseInt(tagCountQuery.rows[0].count);
+
+      // Update the tag count for the associated group
+      await client.query({
+        text: `
+          UPDATE groups
+          SET tag_count = $1
+          WHERE id = $2
+        `,
+        values: [tagCount, data.groupId],
       });
     }
 
@@ -181,6 +217,93 @@ export async function deleteTag(tagId: string) {
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("Error deleting tag:", error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+//Create Group
+
+export async function createGroup(
+  name: string,
+  tagIds: string[],
+  sportIds: string[] // Change to accept array of sportIds
+): Promise<void> {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+
+    const result = await client.query(
+      `
+      INSERT INTO groups (id, name)
+      VALUES (uuid_generate_v4(), $1)
+      RETURNING id
+      `,
+      [name]
+    );
+
+    const groupId = result.rows[0].id;
+
+    // Insert tags into group_tags table
+    await Promise.all(
+      tagIds.map(async (tagId) => {
+        await client.query(
+          `
+          INSERT INTO group_tags (group_id, tag_id)
+          VALUES ($1, $2)
+          `,
+          [groupId, tagId]
+        );
+      })
+    );
+
+    // Associate each sport with the newly created group
+    await Promise.all(
+      sportIds.map(async (sportId) => {
+        await client.query(
+          `
+          INSERT INTO sport_groups (sport_id, group_id)
+          VALUES ($1, $2)
+          `,
+          [sportId, groupId]
+        );
+      })
+    );
+
+    await client.query("COMMIT");
+    revalidatePath("/tags");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+//Delete Group
+
+export async function deleteGroup(groupId: string) {
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Delete the group record from the "groups" table
+    await client.query({
+      text: `
+        DELETE FROM groups
+        WHERE id = $1
+      `,
+      values: [groupId],
+    });
+
+    await client.query("COMMIT");
+    revalidatePath("/groups");
+    console.log("Group deleted successfully.");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Error deleting group:", error);
     throw error;
   } finally {
     client.release();

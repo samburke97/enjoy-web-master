@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useContext, useRef, useEffect } from "react";
 import { XMarkIcon, MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { UIContext } from "../../../../store/ui-context";
@@ -51,8 +49,8 @@ const CreateGroup: React.FC = () => {
     try {
       await createGroup(
         name,
-        selectedTags.map((tag) => tag.id),
-        selectedSports.map((sport) => sport.id)
+        selectedTags.map((tag) => tag.id as string),
+        selectedSports.map((sport) => sport.id as string)
       );
       UICtx.showModalAction();
     } catch (error) {
@@ -126,7 +124,7 @@ const CreateGroup: React.FC = () => {
 
   return (
     <div className="fixed top-0 right-0 w-1/2 h-full bg-surface-light border-[1px] dark:bg-surface-primary-dark dark:border-outline-medium-dark p-10 overflow-scroll z-20">
-      <div className="gap-y-5 dark:bg-surface-primary-dark">
+      <div className="gap-y-4 dark:bg-surface-primary-dark">
         <div className="flex justify-between py-4 mb-4">
           <p className="font-semibold text-2xl">Create Group</p>
           <button onClick={UICtx.showModalAction}>
@@ -138,7 +136,7 @@ const CreateGroup: React.FC = () => {
         <form onSubmit={handleSubmit}>
           <div className="flex flex-col">
             <label htmlFor="tag-name" className="py-4">
-              Group Name
+              Group Name*
             </label>
             <input
               className="block w-full rounded-md border focus:ring-0 focus:outline-none focus:border-primary-primary active:border-primary-primary py-[9px] pl-6 text-sm outline-2 placeholder:text-gray-500 dark:bg-surface-extra-light-dark"
@@ -212,7 +210,7 @@ const CreateGroup: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-col mt-4">
+          <div className="flex flex-col">
             <label htmlFor="filter-sport" className="py-4">
               Filter Group Sports ({selectedSports.length})
             </label>
@@ -241,7 +239,7 @@ const CreateGroup: React.FC = () => {
                     className="block w-full px-4 py-2 text-sm outline-none"
                     multiple
                     size={5}
-                    value={selectedSports.map((sport) => sport.id)}
+                    value={selectedSports.map((sport) => sport.id as string)}
                     onChange={handleSportChange}
                   >
                     {sports
@@ -268,7 +266,7 @@ const CreateGroup: React.FC = () => {
                   <span className="text-sm">{sport.name}</span>
                   <XMarkIcon
                     className="h-4 w-4 ml-2 cursor-pointer"
-                    onClick={() => removeSelectedSport(sport.id)}
+                    onClick={() => removeSelectedSport(sport.id as string)}
                   />
                 </div>
               ))}

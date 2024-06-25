@@ -8,6 +8,55 @@ interface SportData {
   image: string;
 }
 
+// Delete Center
+export async function deleteCenter(centerId: string) {
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Delete sport records associated with the center
+    await client.query({
+      text: `
+        DELETE FROM sports
+        WHERE center_id = $1
+      `,
+      values: [centerId],
+    });
+
+    // Delete center images associated with the center
+    await client.query({
+      text: `
+        DELETE FROM center_images
+        WHERE center_id = $1
+      `,
+      values: [centerId],
+    });
+
+    // Delete center record itself
+    await client.query({
+      text: `
+        DELETE FROM centers
+        WHERE id = $1
+      `,
+      values: [centerId],
+    });
+
+    await client.query("COMMIT");
+
+    revalidatePath("/centers");
+    console.log("Center and associated records deleted successfully.");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Error deleting center and associated records:", error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+//Create Sport
+
 export async function createSport(data: SportData) {
   const client = await db.connect();
 
@@ -26,18 +75,17 @@ export async function createSport(data: SportData) {
 
     const sportId = insertedSport.rows[0].id;
 
-    // Insert data into the "images" table
+    // Insert data into the "sport_images" table
     await client.query({
       text: `
-        INSERT INTO images (sport_id, image_url)
-        VALUES ($1, $2)
+        INSERT INTO sport_images (id, sport_id, image_url)
+        VALUES (uuid_generate_v4(), $1, $2)
       `,
       values: [sportId, data.image],
     });
 
     await client.query("COMMIT");
-    revalidatePath("/sports");
-
+    revalidatePath("/sports"); // Optional: revalidate the sports path after creating a new sport
     console.log("Sport created successfully.");
   } catch (error) {
     await client.query("ROLLBACK");
@@ -56,13 +104,9 @@ export async function deleteSport(sportId: string) {
   try {
     await client.query("BEGIN");
 
-    // We need to invert these two queries to enable the delete of the sport and the images.
-    // This is befcause your DB is structured with FK and you need to follow the order;
-    // Even better you should use ONDELETE (Cascade) to delete the images when the sport is deleted.
-    // Delete the associated images from the "images" table
     await client.query({
       text: `
-          DELETE FROM images
+          DELETE FROM sport_images
           WHERE sport_id = $1
         `,
       values: [sportId],
@@ -73,15 +117,6 @@ export async function deleteSport(sportId: string) {
       text: `
         DELETE FROM sports
         WHERE id = $1
-      `,
-      values: [sportId],
-    });
-
-    // Delete the associated images from the "images" table
-    await client.query({
-      text: `
-        DELETE FROM images
-        WHERE sport_id = $1
       `,
       values: [sportId],
     });
@@ -228,7 +263,7 @@ export async function deleteTag(tagId: string) {
 export async function createGroup(
   name: string,
   tagIds: string[],
-  sportIds: string[] // Change to accept array of sportIds
+  sportIds: string[]
 ): Promise<void> {
   const client = await db.connect();
   try {
@@ -258,7 +293,7 @@ export async function createGroup(
       })
     );
 
-    // Associate each sport with the newly created group
+    // Insert sports into sport_groups table
     await Promise.all(
       sportIds.map(async (sportId) => {
         await client.query(
@@ -304,6 +339,113 @@ export async function deleteGroup(groupId: string) {
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("Error deleting group:", error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+interface updateGroupData {
+  id: string | number;
+  name: string;
+  sportIds: Array<string | number>;
+  tagIds: Array<string | number>;
+}
+
+export async function updateGroup(data: updateGroupData) {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Update group name if provided
+    if (data.name !== undefined) {
+      await client.query({
+        text: `
+          UPDATE groups
+          SET name = $1, last_edited = NOW()
+          WHERE id = $2
+        `,
+        values: [data.name, data.id],
+      });
+    }
+
+    // Update group's sport associations if provided
+    if (data.sportIds !== undefined) {
+      // Clear existing sport associations
+      await client.query({
+        text: `
+          DELETE FROM sport_groups
+          WHERE group_id = $1
+        `,
+        values: [data.id],
+      });
+
+      // Insert new sport associations
+      await Promise.all(
+        data.sportIds.map(async (sportId) => {
+          await client.query({
+            text: `
+              INSERT INTO sport_groups (group_id, sport_id)
+              VALUES ($1, $2)
+            `,
+            values: [data.id, sportId],
+          });
+        })
+      );
+    }
+
+    // Update group's tag associations if provided
+    if (data.tagIds !== undefined) {
+      // Clear existing tag associations
+      await client.query({
+        text: `
+          DELETE FROM group_tags
+          WHERE group_id = $1
+        `,
+        values: [data.id],
+      });
+
+      // Insert new tag associations
+      await Promise.all(
+        data.tagIds.map(async (tagId) => {
+          await client.query({
+            text: `
+              INSERT INTO group_tags (group_id, tag_id)
+              VALUES ($1, $2)
+            `,
+            values: [data.id, tagId],
+          });
+        })
+      );
+
+      // Update tag count for the group
+      const tagCountQuery = await client.query({
+        text: `
+          SELECT COUNT(*)
+          FROM group_tags
+          WHERE group_id = $1
+        `,
+        values: [data.id],
+      });
+
+      const tagCount = parseInt(tagCountQuery.rows[0].count);
+
+      await client.query({
+        text: `
+          UPDATE groups
+          SET tag_count = $1
+          WHERE id = $2
+        `,
+        values: [tagCount, data.id],
+      });
+    }
+
+    await client.query("COMMIT");
+    revalidatePath("/groups");
+    console.log("Group updated successfully.");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Error updating group:", error);
     throw error;
   } finally {
     client.release();

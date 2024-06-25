@@ -1,4 +1,3 @@
-import Link from "next/link";
 import NavLinks from "@/app/ui/nav-links";
 import ThemeChange from "./theme-change";
 

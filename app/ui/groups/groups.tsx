@@ -1,66 +1,47 @@
-"use server";
+"use client";
 
-import { PhotoIcon } from "@heroicons/react/24/outline";
-import { fetchGroups } from "@/app/lib/data";
-import GroupsDeleteActionButtonClient from "./GroupsDeleteActionButtonClient";
+import { useState, useEffect } from "react";
+import GroupRow from "./groups-rows";
+import Search from "../../ui/search";
+import { Group } from "@/app/lib/definitions";
 
-const Groups = async () => {
-  const totalGroups = await fetchGroups();
+interface GroupProps {
+  groups: Group[];
+}
+
+const Groups = ({ groups }: GroupProps) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredGroups, setFilteredGroups] = useState(groups);
+
+  useEffect(() => {
+    setFilteredGroups(
+      groups.filter((group) =>
+        group.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    );
+  }, [searchQuery, groups]);
 
   return (
-    <div className="container py-4">
-      <table className="table-auto text-left text-sm w-full">
-        <thead>
-          <tr className="text-sm text-on-medium">
-            <th className="px-4 py-2">ICN</th>
-            <th className="px-4 py-2">Group Name</th>
-            <th className="px-4 py-2">Tags Count</th>
-            <th className="px-4 py-2 text-right">Last Edited</th>
-          </tr>
-        </thead>
-        <tbody>
-          {totalGroups.map((group, index) => (
-            <tr
-              key={group.id}
-              className={
-                index % 2 === 0
-                  ? "bg-surface-extra-light dark:bg-surface-extra-light-dark"
-                  : "bg-surface dark:bg-surface-dark"
-              }
-            >
-              <td className="px-4 py-2 rounded-l-md text-on-medium">
-                <PhotoIcon className="w-6 h-6" />
-              </td>
-              <td className="px-4 py-2">{group.name}</td>
-              <td className="px-4 py-2">{group.tag_count}</td>
-              <td className="px-4 py-2 text-right">
-                <div style={{ whiteSpace: "nowrap" }}>
-                  {group.last_edited ? (
-                    <>
-                      {group.last_edited.toLocaleDateString(undefined, {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                      -
-                      {group.last_edited.toLocaleTimeString(undefined, {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </>
-                  ) : (
-                    "N/A"
-                  )}
-                </div>
-              </td>
-              <td className="px-2 py-2 rounded-r-md flex justify-center">
-                <GroupsDeleteActionButtonClient id={group.id} />
-              </td>
+    <>
+      <Search placeholder="Search" page="groups" onSearch={setSearchQuery} />
+      <div className="container">
+        <table className="table-auto text-left text-sm w-full">
+          <thead>
+            <tr className="text-sm text-on-medium">
+              <th className="px-4 py-2">ICN</th>
+              <th className="px-4 py-2">Group Name</th>
+              <th className="px-4 py-2">Tags Count</th>
+              <th className="px-4 py-2 text-right">Last Edited</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {filteredGroups.map((group, index) => (
+              <GroupRow group={group} index={index} key={group.id} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 };
 

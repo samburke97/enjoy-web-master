@@ -23,7 +23,7 @@ export const Background = () => {
 export const Overlay = ({ content: ContentComponent }: ModalProps) => {
   return (
     <div>
-      <ContentComponent /> {/* Render the content here */}
+      <ContentComponent />
     </div>
   );
 };

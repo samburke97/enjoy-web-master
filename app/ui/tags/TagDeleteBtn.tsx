@@ -1,17 +1,15 @@
 "use client";
 
-import { deleteGroup } from "@/app/lib/actions";
+import { deleteTag } from "@/app/lib/actions";
 import { TrashIcon } from "@heroicons/react/24/outline";
 
-interface GroupsDeleteActionButtonClientProps {
-  id: string | number;
+interface TagsDeleteProps {
+  id: string;
 }
 
-const GroupsDeleteActionButtonClient: React.FC<
-  GroupsDeleteActionButtonClientProps
-> = ({ id }) => {
+const TagDeleteBtn: React.FC<TagsDeleteProps> = ({ id }) => {
   return (
-    <button onClick={() => deleteGroup(id)}>
+    <button onClick={() => deleteTag(id)}>
       <div className="w-8 h-8 flex justify-center bg-primary-light dark:bg-primary-light-dark border border-dotted border-primary-primary dark:border-primary-primary-dark rounded overflow-hidden">
         <TrashIcon className="w-6" />
       </div>
@@ -19,4 +17,4 @@ const GroupsDeleteActionButtonClient: React.FC<
   );
 };
 
-export default GroupsDeleteActionButtonClient;
+export default TagDeleteBtn;

@@ -3,42 +3,51 @@ const {
   centers,
   sports,
   sport_images,
+  center_images,
   tags,
-  groups, // Add groups from placeholder data
+  groups,
 } = require("../app/lib/placeholder-data.js");
 
 async function seedDatabase(client) {
   try {
-    // Create UUID extension if not exists
     await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
 
-    // Create centers table
     await client.query(`
       CREATE TABLE IF NOT EXISTS centers (
         id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-        name VARCHAR(255) NOT NULL
+        name VARCHAR(255) NOT NULL,
+        last_edited TIMESTAMP DEFAULT NOW()
       );
     `);
 
-    // Create sports table
     await client.query(`
       CREATE TABLE IF NOT EXISTS sports (
         id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        center_id UUID REFERENCES centers(id)
+        last_edited TIMESTAMP DEFAULT NOW()
       );
     `);
 
-    // Create images table
+    // center_id UUID REFERENCES centers(id) ON DELETE CASCADE,
+
+    // Create the center_images table
     await client.query(`
-      CREATE TABLE IF NOT EXISTS images (
+      CREATE TABLE IF NOT EXISTS center_images (
+        id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+        center_id UUID REFERENCES centers(id),
+        image_url VARCHAR(255) NOT NULL
+      );
+    `);
+
+    // Create the sport_images table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS sport_images (
         id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
         sport_id UUID REFERENCES sports(id),
         image_url VARCHAR(255) NOT NULL
       );
     `);
 
-    // Create tags table
     await client.query(`
       CREATE TABLE IF NOT EXISTS tags (
         id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -47,16 +56,15 @@ async function seedDatabase(client) {
       );
     `);
 
-    // Create groups table
     await client.query(`
-  CREATE TABLE IF NOT EXISTS groups (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    last_edited TIMESTAMP DEFAULT NOW()
-  );
-`);
+      CREATE TABLE IF NOT EXISTS groups (
+        id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        last_edited TIMESTAMP DEFAULT NOW(),
+        tag_count INTEGER DEFAULT 0
+      );
+    `);
 
-    // Associative table for sports and tags
     await client.query(`
       CREATE TABLE IF NOT EXISTS sport_tags (
         sport_id UUID REFERENCES sports(id) ON DELETE CASCADE,
@@ -65,7 +73,6 @@ async function seedDatabase(client) {
       );
     `);
 
-    // Associative table for centers and tags
     await client.query(`
       CREATE TABLE IF NOT EXISTS center_tags (
         center_id UUID REFERENCES centers(id) ON DELETE CASCADE,
@@ -74,7 +81,6 @@ async function seedDatabase(client) {
       );
     `);
 
-    // Associative table for groups and tags
     await client.query(`
       CREATE TABLE IF NOT EXISTS group_tags (
         group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
@@ -83,52 +89,47 @@ async function seedDatabase(client) {
       );
     `);
 
-    //Associative table for groups sports
-
     await client.query(`
-       CREATE TABLE IF NOT EXISTS sport_groups (
-       sport_id UUID REFERENCES sports(id) ON DELETE CASCADE,
-       group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
-       PRIMARY KEY (sport_id, group_id)
+      CREATE TABLE IF NOT EXISTS sport_groups (
+        sport_id UUID REFERENCES sports(id) ON DELETE CASCADE,
+        group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
+        PRIMARY KEY (sport_id, group_id)
       );
     `);
 
     console.log("Database schema created successfully.");
 
-    // Insert data into the "centers" table
     await Promise.all(
       centers.map(async (center) => {
         await client.query({
           text: `
-            INSERT INTO centers (id, name)
-            VALUES ($1, $2)
+            INSERT INTO centers (id, name, last_edited)
+            VALUES ($1, $2, $3)
             ON CONFLICT (id) DO NOTHING
           `,
-          values: [center.id, center.name],
+          values: [center.id, center.name, center.last_edited],
         });
       })
     );
 
-    // Insert data into the "sports" table
     await Promise.all(
       sports.map(async (sport) => {
         await client.query({
           text: `
-            INSERT INTO sports (id, name, center_id)
-            VALUES ($1, $2, $3)
+            INSERT INTO sports (id, name, center_id, last_edited)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (id) DO NOTHING
           `,
-          values: [sport.id, sport.name, sport.center_id],
+          values: [sport.id, sport.name, sport.center_id, sport.last_edited],
         });
       })
     );
 
-    // Insert data into the "images" table
     await Promise.all(
       sport_images.map(async (image) => {
         await client.query({
           text: `
-            INSERT INTO images (id, sport_id, image_url)
+            INSERT INTO sport_images (id, sport_id, image_url)
             VALUES ($1, $2, $3)
             ON CONFLICT (id) DO NOTHING
           `,
@@ -137,27 +138,39 @@ async function seedDatabase(client) {
       })
     );
 
-    // Insert data into the "tags" table
+    await Promise.all(
+      center_images.map(async (image) => {
+        await client.query({
+          text: `
+            INSERT INTO center_images (id, center_id, image_url)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (id) DO NOTHING
+          `,
+          values: [image.id, image.center_id, image.image_url],
+        });
+      })
+    );
+
     await Promise.all(
       tags.map(async (tag) => {
         await client.query({
           text: `
-        INSERT INTO tags (id, name, last_edited)
-        VALUES ($1, $2, NOW())
-        ON CONFLICT (id) DO UPDATE
-        SET name = EXCLUDED.name, last_edited = NOW()
-      `,
+            INSERT INTO tags (id, name, last_edited)
+            VALUES ($1, $2, NOW())
+            ON CONFLICT (id) DO UPDATE
+            SET name = EXCLUDED.name, last_edited = NOW()
+          `,
           values: [tag.id, tag.name],
         });
       })
     );
-    // Insert data into the "groups" table
+
     await Promise.all(
       groups.map(async (group) => {
         await client.query({
           text: `
-            INSERT INTO groups (id, name)
-            VALUES ($1, $2)
+            INSERT INTO groups (id, name, last_edited)
+            VALUES ($1, $2, NOW())
             ON CONFLICT (id) DO NOTHING
           `,
           values: [group.id, group.name],

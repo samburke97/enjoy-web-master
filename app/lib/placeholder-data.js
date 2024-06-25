@@ -1,64 +1,70 @@
 const { v4: uuidv4 } = require("uuid");
 
-// Define placeholder data for centers, sports, tags, and groups
 const centers = [
   {
-    id: uuidv4(), // Generate a unique UUID for each center
+    id: uuidv4(),
     name: "Hackney Football Club",
+    last_edited: new Date().toISOString(),
+  },
+];
+
+const center_images = [
+  {
+    id: uuidv4(),
+    center_id: centers[0].id,
+    image_url: "/sports/football.jpg",
   },
 ];
 
 const sports = [
   {
-    id: uuidv4(), // Generate a unique UUID for each sport
+    id: uuidv4(),
     name: "Football",
-    center_id: centers[0].id, // Assign the center UUID to the sport
   },
 ];
 
 const sport_images = [
   {
-    id: uuidv4(), // Generate a unique UUID for each sport image
-    sport_id: sports[0].id, // Use the UUID of the first sport
+    id: uuidv4(),
+    sport_id: sports[0].id,
     image_url: "/sports/football.jpg",
   },
 ];
 
 const tags = [
   {
-    id: uuidv4(), // Generate a unique UUID for each tag
+    id: uuidv4(),
     name: "Sauna",
     last_edited: new Date().toISOString(),
   },
   {
-    id: uuidv4(), // Generate a unique UUID for each tag
+    id: uuidv4(),
     name: "Restaurant",
     last_edited: new Date().toISOString(),
   },
 ];
 
-// Define placeholder data for groups
 const groups = [
   {
-    id: uuidv4(), // Generate a unique UUID for each group
+    id: uuidv4(),
     name: "Relaxation Facilities",
   },
 ];
 
-// Define the group-tag associations
 const group_tags = [
   {
     group_id: groups[0].id,
-    tag_id: tags[0].id, // Sauna tag
+    tag_id: tags[0].id,
   },
   {
     group_id: groups[0].id,
-    tag_id: tags[1].id, // Restaurant tag
+    tag_id: tags[1].id,
   },
 ];
 
 module.exports = {
   centers,
+  center_images,
   sports,
   sport_images,
   tags,

@@ -6,11 +6,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 
-// Map of links to display in the side navigation.
-// Depending on the size of the application, this would be stored in a database.
-
 const links = [
-  { name: "Centers", href: "/", icon: MapPinIcon },
+  { name: "Centers", href: "/centers", icon: MapPinIcon },
   {
     name: "Sports",
     href: "/sports",
